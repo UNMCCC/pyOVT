@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="search-container">
+    <div class="search-input-group">
+        <input type="text" id="search-input" name="q"
+            placeholder="Search for concepts (e.g., 'Aspirin', 'Myocardial Infarction')..." hx-get="/search/"
+            hx-trigger="keyup changed delay:500ms, search" hx-target="#search-results" hx-indicator="#loading"
+            hx-include="[name='vocabulary_id'], [name='domain_id']">
+        <button class="btn-primary" onclick="htmx.trigger('#search-input', 'search')">Search</button>
+    </div>
+
+    <div class="filters">
+        <select name="vocabulary_id" hx-get="/search/" hx-trigger="change" hx-target="#search-results"
+            hx-include="[name='q'], [name='domain_id']">
+            <option value="">All Vocabularies</option>
+            {% for vocab in vocabularies %}
+            <option value="{{ vocab.vocabulary_id }}">{{ vocab.vocabulary_id }}</option>
+            {% endfor %}
+        </select>
+
+        <select name="domain_id" hx-get="/search/" hx-trigger="change" hx-target="#search-results"
+            hx-include="[name='q'], [name='vocabulary_id']">
+            <option value="">All Domains</option>
+            {% for domain in domains %}
+            <option value="{{ domain.domain_id }}">{{ domain.domain_id }}</option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
+<div id="loading" class="loading">
+    Searching...
+</div>
+
+<div id="search-results" class="results-container">
+    <!-- Results will be loaded here -->
+    <div style="text-align: center; color: var(--secondary-color); padding: 2rem;">
+        Start typing to search...
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% if results %}
+{% for concept in results %}
+<a href="/concept/{{ concept.concept_id }}" class="concept-card">
+    <div class="concept-header">
+        <span class="concept-name">{{ concept.concept_name }}</span>
+        <span class="concept-id">ID: {{ concept.concept_id }}</span>
+    </div>
+    <div class="concept-meta">
+        <span class="badge">{{ concept.vocabulary_id }}</span>
+        <span class="badge">{{ concept.domain_id }}</span>
+        <span class="badge">{{ concept.concept_class_id }}</span>
+        {% if concept.standard_concept == 'S' %}
+        <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">Standard</span>
+        {% endif %}
+    </div>
+</a>
+{% endfor %}
+{% else %}
+<div style="text-align: center; color: var(--secondary-color); padding: 2rem;">
+    No results found.
+</div>
+{% endif %}

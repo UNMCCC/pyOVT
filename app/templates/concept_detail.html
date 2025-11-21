@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="detail-header">
+    <a href="/"
+        style="color: var(--secondary-color); text-decoration: none; margin-bottom: 1rem; display: inline-block;">&larr;
+        Back to Search</a>
+    <h1>{{ concept.concept_name }}</h1>
+    <div class="concept-meta" style="margin-top: 1rem;">
+        <span class="concept-id">ID: {{ concept.concept_id }}</span>
+        <span class="badge">{{ concept.vocabulary_id }}</span>
+        <span class="badge">{{ concept.domain_id }}</span>
+        <span class="badge">{{ concept.concept_class_id }}</span>
+        {% if concept.standard_concept == 'S' %}
+        <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">Standard</span>
+        {% endif %}
+    </div>
+</div>
+
+<div class="detail-grid">
+    <div>
+        <div class="section-title">Relationships</div>
+
+        <h3 style="color: var(--secondary-color); margin-top: 1.5rem;">Ancestors (Parents)</h3>
+        <ul class="hierarchy-list">
+            {% if ancestors %}
+            {% for ancestor in ancestors %}
+            <li class="hierarchy-item">
+                <a href="/concept/{{ ancestor.ConceptAncestor.ancestor_concept_id }}" class="hierarchy-link">
+                    {{ ancestor.concept_name }}
+                </a>
+                <span class="badge">{{ ancestor.ConceptAncestor.min_levels_of_separation }} levels up</span>
+            </li>
+            {% endfor %}
+            {% else %}
+            <li class="hierarchy-item" style="color: var(--secondary-color);">No ancestors found</li>
+            {% endif %}
+        </ul>
+
+        <h3 style="color: var(--secondary-color); margin-top: 1.5rem;">Descendants (Direct Children)</h3>
+        <ul class="hierarchy-list">
+            {% if descendants %}
+            {% for descendant in descendants %}
+            <li class="hierarchy-item">
+                <a href="/concept/{{ descendant.ConceptAncestor.descendant_concept_id }}" class="hierarchy-link">
+                    {{ descendant.concept_name }}
+                </a>
+                <span class="badge">{{ descendant.vocabulary_id }}</span>
+            </li>
+            {% endfor %}
+            {% else %}
+            <li class="hierarchy-item" style="color: var(--secondary-color);">No direct descendants found</li>
+            {% endif %}
+        </ul>
+    </div>
+
+    <div>
+        <div class="section-title">Details</div>
+        <div
+            style="background: var(--card-bg); padding: 1.5rem; border-radius: 0.75rem; border: 1px solid var(--border-color);">
+            <p><strong>Concept Code:</strong> {{ concept.concept_code }}</p>
+            <p><strong>Valid Start:</strong> {{ concept.valid_start_date }}</p>
+            <p><strong>Valid End:</strong> {{ concept.valid_end_date }}</p>
+            <p><strong>Invalid Reason:</strong> {{ concept.invalid_reason or 'None' }}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
