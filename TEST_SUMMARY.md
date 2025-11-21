@@ -2,13 +2,11 @@
 
 ## Overview
 
-A comprehensive test suite has been created for the OHDSI Vocabulary Tool FastAPI application with **57 tests** using **live database testing** against a real PostgreSQL database with OHDSI CDM vocabulary data.
+A comprehensive test for the OHDSI Vocabulary Tool FastAPI application with **57 tests** using **live database testing** against a real PostgreSQL database with OHDSI CDM vocabulary data.
 
 ## Testing Approach
 
 ### Live Database Testing
-
-The test suite has been **refactored from mocked database sessions to live database testing**:
 
 - **Real Database Queries**: Tests query actual OHDSI vocabulary data from PostgreSQL
 - **Transaction Rollback**: Each test runs in an isolated transaction that is rolled back after completion
@@ -43,48 +41,6 @@ Test Distribution:
 | test_concept.py     | 20    | Concept detail with hierarchy & relationships  |
 | test_main.py        | 17    | Index page with vocabularies & domains         |
 | **TOTAL**           | **57**| **Complete endpoint coverage**                 |
-
-## Files Modified/Created
-
-### Core Test Files
-
-1. **tests/conftest.py** (263 lines)
-   - Removed all mock fixtures
-   - Added real database session fixtures with transaction rollback
-   - Created dynamic fixtures that query database for valid test data
-   - Session-scoped fixtures for performance optimization
-
-2. **tests/test_search.py** (447 lines)
-   - Refactored from 15 to 20 tests
-   - Uses live database with actual search queries
-   - Tests fuzzy matching with pg_trgm against real data
-   - Flexible assertions that work with any database content
-
-3. **tests/test_concept.py** (505 lines)
-   - Refactored from 14 to 20 tests
-   - Queries real concepts, ancestors, descendants, and relationships
-   - Tests hierarchy display with actual database data
-   - Performance testing with real database queries
-
-4. **tests/test_main.py** (442 lines)
-   - Refactored from 13 to 17 tests
-   - Queries actual vocabularies and domains from database
-   - Tests display of real reference data
-   - Graceful handling of variable database content
-
-### Documentation
-
-5. **tests/README.md** (528 lines)
-   - Completely rewritten for live database testing approach
-   - Comprehensive guide on running tests with real database
-   - Database requirements and configuration
-   - Troubleshooting guide for common issues
-   - CI/CD integration examples
-
-6. **TEST_SUMMARY.md** (This file)
-   - Updated to reflect live database testing approach
-   - New test breakdown and coverage metrics
-   - Migration guide from mocked to live testing
 
 ## Test Breakdown
 
@@ -230,40 +186,6 @@ These fixtures query the database once per test session for optimal performance:
 |--------------|------------------------------------------------------|
 | `db_session` | Database session with transaction rollback           |
 | `client`     | TestClient with real database dependency override    |
-
-## Migration from Mocked to Live Testing
-
-### What Changed
-
-**Before (Mocked Testing):**
-```python
-def test_search(client, mock_db, sample_concepts_list, mock_query_chain):
-    # Setup mock
-    mock_query_chain.all.return_value = sample_concepts_list
-    mock_db.query.return_value = mock_query_chain
-
-    response = client.get("/search/?q=hypertension")
-    assert response.status_code == 200
-    assert len(response.json()) == 3  # Fixed number
-```
-
-**After (Live Database Testing):**
-```python
-def test_search(client, searchable_term):
-    # Query real database
-    response = client.get(f"/search/?q={searchable_term}")
-
-    assert response.status_code == 200
-    assert len(response.json()) > 0  # Flexible assertion
-```
-
-### Key Differences
-
-1. **No More Mocks**: Removed all mock_db, mock_query_chain fixtures
-2. **Real Queries**: Tests execute actual SQL queries against PostgreSQL
-3. **Flexible Assertions**: Tests adapt to variable database content
-4. **Dynamic Data**: Fixtures query database for valid test data
-5. **Transaction Safety**: Rollback ensures no permanent changes
 
 ## Database Requirements
 

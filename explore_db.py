@@ -6,7 +6,7 @@ def get_tables():
         # Try connecting to database 'cdm'
         conn = psycopg2.connect(
             dbname="cdm",
-            user="smathias", # Guessing user based on home dir, or maybe 'postgres'
+            user="smathias",
             host="localhost"
         )
         cur = conn.cursor()
