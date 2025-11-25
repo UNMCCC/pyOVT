@@ -93,10 +93,53 @@ select {
     font-size: 0.9rem;
 }
 
+/* Checkbox Filters */
+.checkbox-filter {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+    user-select: none;
+}
+
+.checkbox-filter:hover {
+    background: var(--hover-bg);
+    border-color: var(--primary-color);
+}
+
+.checkbox-filter input[type="checkbox"] {
+    width: 1.1rem;
+    height: 1.1rem;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+}
+
+.checkbox-filter span {
+    font-size: 0.9rem;
+    color: var(--text-color);
+}
+
 /* Results */
 .results-container {
     display: grid;
     gap: 1rem;
+}
+
+.results-count {
+    font-size: 0.9rem;
+    color: var(--secondary-color);
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    text-align: center;
+    background: rgba(100, 116, 139, 0.1);
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
+    font-weight: 500;
 }
 
 .concept-card {

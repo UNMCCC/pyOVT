@@ -260,3 +260,100 @@ def searchable_term(db_engine) -> str:
         return words[0] if words else concept.concept_name[:10]
     finally:
         session.close()
+
+
+@pytest.fixture(scope="session")
+def standard_concept_term(db_engine) -> str:
+    """
+    Get a search term that matches a standard concept (standard_concept = 'S').
+
+    Args:
+        db_engine: Database engine fixture
+
+    Returns:
+        str: A search term for a standard concept
+    """
+    TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=db_engine)
+    session = TestSessionLocal()
+
+    try:
+        # Get a standard concept
+        concept = session.query(Concept).filter(
+            Concept.standard_concept == "S"
+        ).first()
+
+        if not concept or not concept.concept_name:
+            pytest.skip("No standard concepts found in database")
+
+        # Return a distinctive part of the name that should uniquely identify it
+        words = concept.concept_name.split()
+        return words[0] if words else concept.concept_name[:10]
+    finally:
+        session.close()
+
+
+@pytest.fixture(scope="session")
+def non_standard_concept_term(db_engine) -> str:
+    """
+    Get a search term that matches a non-standard concept.
+
+    Args:
+        db_engine: Database engine fixture
+
+    Returns:
+        str: A search term for a non-standard concept, or None if none exist
+    """
+    TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=db_engine)
+    session = TestSessionLocal()
+
+    try:
+        # Get a non-standard concept (where standard_concept is NULL or 'C' for classification)
+        concept = session.query(Concept).filter(
+            Concept.standard_concept.in_(['C', None])
+        ).first()
+
+        if not concept or not concept.concept_name:
+            return None  # Return None instead of skipping - some tests need this
+
+        # Return a distinctive part of the name
+        words = concept.concept_name.split()
+        return words[0] if words else concept.concept_name[:10]
+    finally:
+        session.close()
+
+
+@pytest.fixture(scope="session")
+def concept_with_typo(db_engine) -> tuple[str, str]:
+    """
+    Get a concept name and a version with a typo for testing fuzzy matching.
+
+    Args:
+        db_engine: Database engine fixture
+
+    Returns:
+        tuple: (correct_term, typo_term) - the correct search term and a version with a typo
+    """
+    TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=db_engine)
+    session = TestSessionLocal()
+
+    try:
+        # Get a concept with a name long enough to introduce a typo
+        concept = session.query(Concept).filter(
+            Concept.standard_concept == "S"
+        ).first()
+
+        if not concept or not concept.concept_name or len(concept.concept_name) < 5:
+            pytest.skip("No suitable concepts found for typo testing")
+
+        correct_term = concept.concept_name.split()[0] if concept.concept_name.split() else concept.concept_name[:10]
+
+        # Create a typo by swapping two characters or removing a character
+        if len(correct_term) >= 4:
+            # Remove a character from the middle
+            typo_term = correct_term[:len(correct_term)//2] + correct_term[len(correct_term)//2 + 1:]
+        else:
+            typo_term = correct_term[:-1]  # Just remove last character
+
+        return (correct_term, typo_term)
+    finally:
+        session.close()

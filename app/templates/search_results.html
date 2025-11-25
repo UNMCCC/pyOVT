@@ -1,4 +1,14 @@
 {% if results %}
+<div class="results-count">
+    {% set count = results|length %}
+    {% if count == 1 %}
+        1 result found
+    {% elif count == 50 %}
+        50 results found (showing maximum)
+    {% else %}
+        {{ count }} results found
+    {% endif %}
+</div>
 {% for concept in results %}
 <a href="/concept/{{ concept.concept_id }}" class="concept-card">
     <div class="concept-header">
