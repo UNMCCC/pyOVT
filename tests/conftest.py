@@ -357,3 +357,34 @@ def concept_with_typo(db_engine) -> tuple[str, str]:
         return (correct_term, typo_term)
     finally:
         session.close()
+
+
+@pytest.fixture(scope="session")
+def concept_with_maps_to_relationship(db_engine) -> int:
+    """
+    Get a concept with 'Maps to' relationships for testing.
+
+    Args:
+        db_engine: Database engine fixture
+
+    Returns:
+        int: A concept ID that has 'Maps to' relationships
+    """
+    from app.models import ConceptRelationship
+
+    TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=db_engine)
+    session = TestSessionLocal()
+
+    try:
+        # Find concept with Maps to relationships
+        relationship = session.query(ConceptRelationship).filter(
+            ConceptRelationship.relationship_id == 'Maps to',
+            ConceptRelationship.invalid_reason.is_(None)
+        ).first()
+
+        if not relationship:
+            pytest.skip("No 'Maps to' relationships found")
+
+        return relationship.concept_id_1
+    finally:
+        session.close()

@@ -1,0 +1,34 @@
+{% if results %}
+<div class="explore-results">
+    <div class="results-count">
+        {{ results|length }} descendant(s) found matching "{{ query }}"
+    </div>
+
+    {% for concept in results %}
+    <a href="/concept/{{ concept[0] }}" class="concept-card">
+        <div class="concept-header">
+            <span class="concept-name">{{ concept[1] }}</span>
+            <span class="concept-id">ID: {{ concept[0] }}</span>
+        </div>
+        <div class="concept-meta">
+            <span class="badge">{{ concept[2] }}</span>
+            <span class="badge">{{ concept[3] }}</span>
+            {% if concept[4] %}
+            <span class="badge badge-code-display">{{ concept[4] }}</span>
+            {% endif %}
+            {% if concept[5] == 'S' %}
+            <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">Standard</span>
+            {% endif %}
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    {% if query %}
+    No descendants found matching "{{ query }}".
+    {% else %}
+    Enter a search term to find descendants.
+    {% endif %}
+</div>
+{% endif %}

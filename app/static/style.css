@@ -308,3 +308,92 @@ select {
 .btn-primary:hover {
     background-color: var(--accent-color);
 }
+
+/* Explore Section */
+.explore-section {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.explore-tools {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+    margin-top: 1.5rem;
+}
+
+.explore-card {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-color);
+}
+
+.explore-card h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+}
+
+.explore-card p {
+    color: var(--secondary-color);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.btn-explore {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    width: 100%;
+}
+
+.btn-explore:hover {
+    background: var(--accent-color);
+}
+
+.explore-results-container {
+    margin-top: 1.5rem;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.explore-results .concept-card {
+    margin-bottom: 0.75rem;
+}
+
+.badge-relationship {
+    background: rgba(139, 92, 246, 0.2);
+    color: #a78bfa;
+    font-weight: 600;
+}
+
+.empty-state {
+    text-align: center;
+    color: var(--secondary-color);
+    padding: 2rem;
+    font-style: italic;
+}
+
+/* Loading indicator for HTMX */
+.loading.htmx-indicator {
+    display: none;
+    color: var(--secondary-color);
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+}
+
+.htmx-request .loading.htmx-indicator {
+    display: block;
+}
+
+.htmx-request.loading.htmx-indicator {
+    display: inline-block;
+}

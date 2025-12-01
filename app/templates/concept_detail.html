@@ -65,4 +65,47 @@
         </div>
     </div>
 </div>
+
+{# New Explore Section #}
+<section class="explore-section">
+    <h2 class="section-title">Explore Related Concepts</h2>
+
+    <div class="explore-tools">
+        <div class="explore-card">
+            <h3>Find Similar Concepts</h3>
+            <p>Discover concepts mapped to or from this concept via standardization relationships.</p>
+            <button
+                hx-get="/concept/{{ concept.concept_id }}/similar"
+                hx-target="#similar-concepts-results"
+                hx-indicator="#explore-loading"
+                class="btn-explore">
+                Find Similar Concepts
+            </button>
+            <div id="explore-loading" class="loading htmx-indicator">
+                Loading...
+            </div>
+            <div id="similar-concepts-results" class="explore-results-container"></div>
+        </div>
+
+        <div class="explore-card">
+            <h3>Search Within Hierarchy</h3>
+            <p>Search for specific concepts within the direct descendants of this concept.</p>
+            <div class="search-input-group">
+                <input
+                    type="text"
+                    id="hierarchy-search-input"
+                    name="q"
+                    placeholder="Search descendants..."
+                    hx-get="/concept/{{ concept.concept_id }}/descendants/search"
+                    hx-trigger="keyup changed delay:500ms"
+                    hx-target="#hierarchy-search-results"
+                    hx-indicator="#hierarchy-loading">
+                <div id="hierarchy-loading" class="loading htmx-indicator">
+                    Searching...
+                </div>
+            </div>
+            <div id="hierarchy-search-results" class="explore-results-container"></div>
+        </div>
+    </div>
+</section>
 {% endblock %}
