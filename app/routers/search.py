@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, text, case
+from sqlalchemy import func, text, case, or_
 from typing import Optional, List
 from ..database import get_db
 from ..models import Concept
@@ -31,26 +31,61 @@ def search_concepts(
             return templates.TemplateResponse("search_results.html", {"request": request, "results": []})
         return []
 
+    # Start with base query
     query = db.query(Concept)
 
-    # Decide between fuzzy and exact matching based on checkbox
+    # Decide between fuzzy and exact matching
     use_fuzzy = (fuzzy == "true")
+    q_lower = q.lower()
 
     if use_fuzzy:
-        # FUZZY MATCHING: Use pg_trgm similarity (current behavior)
-        query = query.filter(Concept.concept_name.op("%")(q))
-        query = query.order_by(func.similarity(Concept.concept_name, q).desc())
-    else:
-        # EXACT/PARTIAL MATCHING: Use ILIKE for case-insensitive substring matching
-        search_pattern = f"%{q}%"
-        query = query.filter(Concept.concept_name.ilike(search_pattern))
+        # FUZZY MODE: Only fuzzy match on concept_name
+        # Use exact matching for concept_code (more precise)
+        query = query.filter(
+            or_(
+                Concept.concept_name.op("%")(q),
+                Concept.concept_code.ilike(f"%{q}%")
+            )
+        )
 
-        # Order by exact match first, then alphabetically
+        # Calculate similarity for name only
+        name_similarity = func.similarity(Concept.concept_name, q)
+
+        # Order by: exact code match first, then name similarity
         query = query.order_by(
             case(
-                (func.lower(Concept.concept_name) == q.lower(), 1),
-                else_=2
-            ),
+                (func.lower(Concept.concept_code) == q_lower, 1),
+                else_=0
+            ).desc(),
+            name_similarity.desc(),
+            Concept.concept_name
+        )
+
+    else:
+        # EXACT/PARTIAL MODE: Search both fields with ILIKE
+        search_pattern = f"%{q}%"
+
+        query = query.filter(
+            or_(
+                Concept.concept_name.ilike(search_pattern),
+                Concept.concept_code.ilike(search_pattern)
+            )
+        )
+
+        # Smart ranking algorithm:
+        # 1. Exact code match (highest priority)
+        # 2. Exact name match
+        # 3. Code starts with query
+        # 4. Name starts with query
+        # 5. Standard concepts vs non-standard
+        # 6. Alphabetical by name
+
+        query = query.order_by(
+            case((func.lower(Concept.concept_code) == q_lower, 1), else_=0).desc(),
+            case((func.lower(Concept.concept_name) == q_lower, 1), else_=0).desc(),
+            case((func.lower(Concept.concept_code).startswith(q_lower), 1), else_=0).desc(),
+            case((func.lower(Concept.concept_name).startswith(q_lower), 1), else_=0).desc(),
+            case((Concept.standard_concept == 'S', 1), else_=0).desc(),
             Concept.concept_name
         )
 
@@ -66,9 +101,14 @@ def search_concepts(
     
     results = query.limit(limit).all()
     
-    # If HTMX request, return partial
+    # If HTMX request, return partial with query for match detection
     if request.headers.get("HX-Request"):
-        return templates.TemplateResponse("search_results.html", {"request": request, "results": results})
-    
+        return templates.TemplateResponse("search_results.html", {
+            "request": request,
+            "results": results,
+            "query": q,  # Pass query to template for match type detection
+            "limit": limit  # Pass limit to template for display
+        })
+
     # If JSON request (API), return list
     return results

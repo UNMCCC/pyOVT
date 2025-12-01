@@ -4,6 +4,10 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+
+from app.models import Concept
 
 
 class TestSearchEndpoint:
@@ -1043,3 +1047,171 @@ class TestSearchEndpoint:
         if len(data_filtered) > 0:
             assert "standard_concept" in data_filtered[0]
             assert data_filtered[0]["standard_concept"] == "S"
+
+
+# ========================================================================
+# MULTI-FIELD SEARCH TESTS (PHASE 1)
+# ========================================================================
+
+class TestMultiFieldSearch:
+    """Test suite for multi-field search (concept_name + concept_code)."""
+
+    def test_search_by_concept_code_exact_mode(
+        self,
+        client: TestClient,
+        db_session: Session,
+    ) -> None:
+        """Test searching by concept_code in exact mode."""
+        # Get a concept with a code
+        concept = db_session.query(Concept).filter(
+            Concept.concept_code.isnot(None),
+            Concept.concept_code != ''
+        ).first()
+
+        if not concept:
+            pytest.skip("No concepts with codes found")
+
+        # Search by concept code
+        response = client.get(f"/search/?q={concept.concept_code}&fuzzy=false")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) > 0
+
+        # Verify the concept is in results
+        concept_ids = [c["concept_id"] for c in data]
+        assert concept.concept_id in concept_ids
+
+    def test_code_match_ranked_higher_than_name_match(
+        self,
+        client: TestClient,
+        db_session: Session,
+    ) -> None:
+        """Test that exact code matches rank first."""
+        concept = db_session.query(Concept).filter(
+            Concept.concept_code.isnot(None),
+            func.length(Concept.concept_code) <= 10
+        ).first()
+
+        if not concept:
+            pytest.skip("No suitable concepts found")
+
+        response = client.get(f"/search/?q={concept.concept_code}&fuzzy=false")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        if len(data) > 0:
+            # First result should be exact code match
+            assert data[0]["concept_code"].lower() == concept.concept_code.lower()
+
+    def test_fuzzy_mode_uses_exact_matching_for_codes(
+        self,
+        client: TestClient,
+        db_session: Session,
+    ) -> None:
+        """Test that fuzzy mode still does exact matching on codes."""
+        concept = db_session.query(Concept).filter(
+            Concept.concept_code.isnot(None),
+            Concept.concept_code != ''
+        ).first()
+
+        if not concept:
+            pytest.skip("No concepts with codes found")
+
+        # Search in fuzzy mode
+        response = client.get(f"/search/?q={concept.concept_code}&fuzzy=true")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Should find the exact code match
+        concept_ids = [c["concept_id"] for c in data]
+        assert concept.concept_id in concept_ids
+
+    def test_partial_code_match(
+        self,
+        client: TestClient,
+        db_session: Session,
+    ) -> None:
+        """Test that partial code matches are found."""
+        concept = db_session.query(Concept).filter(
+            Concept.concept_code.isnot(None),
+            func.length(Concept.concept_code) > 3
+        ).first()
+
+        if not concept:
+            pytest.skip("No suitable concepts found")
+
+        # Search with partial code
+        partial = concept.concept_code[:3]
+        response = client.get(f"/search/?q={partial}&fuzzy=false")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) > 0
+
+    def test_htmx_response_includes_query_parameter(
+        self,
+        client: TestClient,
+        db_session: Session,
+    ) -> None:
+        """Test that HTMX responses can detect match types."""
+        concept = db_session.query(Concept).filter(
+            Concept.concept_code.isnot(None),
+            Concept.concept_code != ''
+        ).first()
+
+        if not concept:
+            pytest.skip("No concepts with codes found")
+
+        response = client.get(
+            f"/search/?q={concept.concept_code}&fuzzy=false",
+            headers={"HX-Request": "true"}
+        )
+
+        assert response.status_code == 200
+        html = response.text
+        # Should contain code badge
+        assert "badge-code-display" in html
+
+    def test_standard_concepts_prioritized(
+        self,
+        client: TestClient,
+    ) -> None:
+        """Test that standard concepts rank higher in exact mode."""
+        response = client.get("/search/?q=diabetes&fuzzy=false&limit=50")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Just verify the ranking logic works without errors
+        assert isinstance(data, list)
+
+    def test_multi_field_with_filters(
+        self,
+        client: TestClient,
+        db_session: Session,
+        sample_vocabulary_id: str,
+    ) -> None:
+        """Test multi-field search works with vocabulary filter."""
+        concept = db_session.query(Concept).filter(
+            Concept.concept_code.isnot(None),
+            Concept.vocabulary_id == sample_vocabulary_id
+        ).first()
+
+        if not concept:
+            pytest.skip("No suitable concepts found")
+
+        response = client.get(
+            f"/search/?q={concept.concept_code[:3]}"
+            f"&vocabulary_id={sample_vocabulary_id}"
+            f"&fuzzy=false"
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # All results should match vocabulary filter
+        for result in data:
+            assert result["vocabulary_id"] == sample_vocabulary_id

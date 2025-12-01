@@ -3,8 +3,8 @@
     {% set count = results|length %}
     {% if count == 1 %}
         1 result found
-    {% elif count == 50 %}
-        50 results found (showing maximum)
+    {% elif count == limit %}
+        {{ count }} results found (showing maximum of {{ limit }})
     {% else %}
         {{ count }} results found
     {% endif %}
@@ -15,7 +15,27 @@
         <span class="concept-name">{{ concept.concept_name }}</span>
         <span class="concept-id">ID: {{ concept.concept_id }}</span>
     </div>
+
     <div class="concept-meta">
+        {# Show concept code in metadata section if it exists #}
+        {% if concept.concept_code %}
+        <span class="badge badge-code-display">
+            {{ concept.concept_code }}
+
+            {# Add match indicator if code matches query #}
+            {% if query %}
+                {% set q_lower = query.lower() %}
+                {% set code_lower = concept.concept_code.lower() %}
+
+                {% if q_lower == code_lower %}
+                    <span class="match-indicator exact-code">✓ Exact</span>
+                {% elif code_lower.startswith(q_lower) or q_lower in code_lower %}
+                    <span class="match-indicator code">✓</span>
+                {% endif %}
+            {% endif %}
+        </span>
+        {% endif %}
+
         <span class="badge">{{ concept.vocabulary_id }}</span>
         <span class="badge">{{ concept.domain_id }}</span>
         <span class="badge">{{ concept.concept_class_id }}</span>

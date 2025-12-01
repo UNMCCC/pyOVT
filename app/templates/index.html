@@ -6,13 +6,13 @@
         <input type="text" id="search-input" name="q"
             placeholder="Search for concepts (e.g., 'Aspirin', 'Myocardial Infarction')..." hx-get="/search/"
             hx-trigger="keyup changed delay:500ms, search" hx-target="#search-results" hx-indicator="#loading"
-            hx-include="[name='vocabulary_id'], [name='domain_id'], [name='fuzzy'], [name='standard_only']">
+            hx-include="[name='vocabulary_id'], [name='domain_id'], [name='fuzzy'], [name='standard_only'], [name='limit']">
         <button class="btn-primary" onclick="htmx.trigger('#search-input', 'search')">Search</button>
     </div>
 
     <div class="filters">
         <select name="vocabulary_id" hx-get="/search/" hx-trigger="change" hx-target="#search-results"
-            hx-include="[name='q'], [name='domain_id'], [name='fuzzy'], [name='standard_only']">
+            hx-include="[name='q'], [name='domain_id'], [name='fuzzy'], [name='standard_only'], [name='limit']">
             <option value="">All Vocabularies</option>
             {% for vocab in vocabularies %}
             <option value="{{ vocab.vocabulary_id }}">{{ vocab.vocabulary_id }}</option>
@@ -20,24 +20,32 @@
         </select>
 
         <select name="domain_id" hx-get="/search/" hx-trigger="change" hx-target="#search-results"
-            hx-include="[name='q'], [name='vocabulary_id'], [name='fuzzy'], [name='standard_only']">
+            hx-include="[name='q'], [name='vocabulary_id'], [name='fuzzy'], [name='standard_only'], [name='limit']">
             <option value="">All Domains</option>
             {% for domain in domains %}
             <option value="{{ domain.domain_id }}">{{ domain.domain_id }}</option>
             {% endfor %}
         </select>
 
+        <select name="limit" hx-get="/search/" hx-trigger="change" hx-target="#search-results"
+            hx-include="[name='q'], [name='vocabulary_id'], [name='domain_id'], [name='fuzzy'], [name='standard_only']">
+            <option value="50">Limit: 50</option>
+            <option value="100">Limit: 100</option>
+            <option value="200">Limit: 200</option>
+            <option value="500">Limit: 500</option>
+        </select>
+
         <label class="checkbox-filter">
             <input type="checkbox" name="fuzzy" value="true" checked
                 hx-get="/search/" hx-trigger="change" hx-target="#search-results"
-                hx-include="[name='q'], [name='vocabulary_id'], [name='domain_id'], [name='standard_only']">
+                hx-include="[name='q'], [name='vocabulary_id'], [name='domain_id'], [name='standard_only'], [name='limit']">
             <span>Use fuzzy matching</span>
         </label>
 
         <label class="checkbox-filter">
             <input type="checkbox" name="standard_only" value="true"
                 hx-get="/search/" hx-trigger="change" hx-target="#search-results"
-                hx-include="[name='q'], [name='vocabulary_id'], [name='domain_id'], [name='fuzzy']">
+                hx-include="[name='q'], [name='vocabulary_id'], [name='domain_id'], [name='fuzzy'], [name='limit']">
             <span>Standard concepts only</span>
         </label>
     </div>
