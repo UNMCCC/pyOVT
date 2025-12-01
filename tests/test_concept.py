@@ -635,6 +635,34 @@ class TestRelationshipExploration:
         concept_ids = [item["concept_id"] for item in data]
         assert len(concept_ids) == len(set(concept_ids)), "Found duplicate concept IDs in results"
 
+    def test_find_similar_excludes_self(
+        self,
+        client: TestClient,
+        db_session: Session,
+    ) -> None:
+        """Test that the concept itself is excluded from similar concepts."""
+        from app.models import ConceptRelationship
+
+        # Find a concept with relationships
+        relationship = db_session.query(ConceptRelationship).filter(
+            ConceptRelationship.relationship_id.in_(['Maps to', 'Mapped from']),
+            ConceptRelationship.invalid_reason.is_(None)
+        ).first()
+
+        if not relationship:
+            pytest.skip("No relationships found")
+
+        concept_id = relationship.concept_id_1
+
+        # Test API response
+        response = client.get(f"/concept/{concept_id}/similar")
+        assert response.status_code == 200
+        data = response.json()
+
+        # Check that the concept itself is not in the results
+        concept_ids = [item["concept_id"] for item in data]
+        assert concept_id not in concept_ids, f"Concept {concept_id} should not appear in its own similar concepts"
+
     def test_search_descendants_endpoint(
         self,
         client: TestClient,

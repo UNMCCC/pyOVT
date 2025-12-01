@@ -125,11 +125,15 @@ def find_similar_concepts(
 
     # Combine results and deduplicate by concept_id
     # Use a dict to keep only unique concepts (keyed by concept_id)
+    # Also exclude the current concept itself
     seen_concepts = {}
     for row in outgoing + incoming:
-        concept_id_key = row[1]  # concept_id is at index 1
-        if concept_id_key not in seen_concepts:
-            seen_concepts[concept_id_key] = row
+        related_concept_id = row[1]  # concept_id is at index 1
+        # Skip if this is the same concept we're querying for
+        if related_concept_id == concept_id:
+            continue
+        if related_concept_id not in seen_concepts:
+            seen_concepts[related_concept_id] = row
 
     # Convert back to list and apply limit
     related_concepts = list(seen_concepts.values())[:limit]
