@@ -123,8 +123,16 @@ def find_similar_concepts(
         ConceptRelationship.invalid_reason.is_(None)
     ).limit(limit).all()
 
-    # Combine results
-    related_concepts = outgoing + incoming
+    # Combine results and deduplicate by concept_id
+    # Use a dict to keep only unique concepts (keyed by concept_id)
+    seen_concepts = {}
+    for row in outgoing + incoming:
+        concept_id_key = row[1]  # concept_id is at index 1
+        if concept_id_key not in seen_concepts:
+            seen_concepts[concept_id_key] = row
+
+    # Convert back to list and apply limit
+    related_concepts = list(seen_concepts.values())[:limit]
 
     context = {
         "request": request,

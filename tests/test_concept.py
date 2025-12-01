@@ -609,6 +609,32 @@ class TestRelationshipExploration:
         # All returned relationships should have invalid_reason = None
         # (This is enforced by the query filter)
 
+    def test_find_similar_deduplicates_concepts(
+        self,
+        client: TestClient,
+        db_session: Session,
+    ) -> None:
+        """Test that duplicate concepts are removed from results."""
+        from app.models import ConceptRelationship
+
+        # Find a concept with relationships
+        relationship = db_session.query(ConceptRelationship).filter(
+            ConceptRelationship.relationship_id.in_(['Maps to', 'Mapped from']),
+            ConceptRelationship.invalid_reason.is_(None)
+        ).first()
+
+        if not relationship:
+            pytest.skip("No relationships found")
+
+        # Test API response
+        response = client.get(f"/concept/{relationship.concept_id_1}/similar")
+        assert response.status_code == 200
+        data = response.json()
+
+        # Check that all concept_ids are unique
+        concept_ids = [item["concept_id"] for item in data]
+        assert len(concept_ids) == len(set(concept_ids)), "Found duplicate concept IDs in results"
+
     def test_search_descendants_endpoint(
         self,
         client: TestClient,
