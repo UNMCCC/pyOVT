@@ -5,3 +5,9 @@ psycopg2-binary
 jinja2
 pydantic
 python-dotenv
+# Phase 3: Semantic Search dependencies
+sentence-transformers>=2.2.0
+torch>=2.0.0
+tqdm>=4.65.0
+tenacity>=8.2.0
+pgvector>=0.2.0

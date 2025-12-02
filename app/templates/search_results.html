@@ -8,6 +8,18 @@
     {% else %}
         {{ count }} results found
     {% endif %}
+
+    {% if search_mode %}
+        <span class="search-mode-indicator search-mode-{{ search_mode }}">
+            {% if search_mode == 'semantic' %}
+                🔍 Semantic Search
+            {% elif search_mode == 'fuzzy' %}
+                ~ Fuzzy Search
+            {% elif search_mode == 'exact' %}
+                = Exact Search
+            {% endif %}
+        </span>
+    {% endif %}
 </div>
 {% for concept in results %}
 <a href="/concept/{{ concept.concept_id }}" class="concept-card">

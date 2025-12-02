@@ -1,5 +1,7 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Text, DateTime
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+from pgvector.sqlalchemy import Vector
 from .database import Base
 
 class Concept(Base):
@@ -80,3 +82,15 @@ class ConceptAncestor(Base):
     # Relationships
     ancestor = relationship("Concept", foreign_keys=[ancestor_concept_id])
     descendant = relationship("Concept", foreign_keys=[descendant_concept_id])
+
+class ConceptEmbedding(Base):
+    __tablename__ = "concept_embedding"
+
+    concept_id = Column(Integer, ForeignKey("concept.concept_id"), primary_key=True)
+    embedding = Column(Vector(384))
+    model_name = Column(String(100), nullable=False, default="all-MiniLM-L6-v2")
+    model_version = Column(String(50), nullable=False, default="v1")
+    generated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.current_timestamp())
+
+    # Relationship
+    concept = relationship("Concept")

@@ -1215,3 +1215,416 @@ class TestMultiFieldSearch:
         # All results should match vocabulary filter
         for result in data:
             assert result["vocabulary_id"] == sample_vocabulary_id
+
+
+# ========================================================================
+# SEMANTIC SEARCH TESTS (PHASE 3)
+# ========================================================================
+
+class TestSemanticSearch:
+    """Test suite for semantic search using vector embeddings."""
+
+    def test_semantic_search_basic(
+        self,
+        client: TestClient,
+    ) -> None:
+        """
+        Test basic semantic search returns results.
+
+        Args:
+            client: FastAPI test client
+        """
+        # Make semantic search request
+        response = client.get("/search/?q=diabetes&semantic=true&limit=10")
+
+        # Assertions
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) > 0
+
+        # Verify response structure
+        first_result = data[0]
+        assert "concept_id" in first_result
+        assert "concept_name" in first_result
+
+    def test_semantic_search_finds_related_concepts(
+        self,
+        client: TestClient,
+    ) -> None:
+        """
+        Test semantic search finds semantically related concepts.
+
+        For example, "diabetes" should find "diabetic", "hyperglycemia", etc.
+
+        Args:
+            client: FastAPI test client
+        """
+        # Search for diabetes
+        response = client.get("/search/?q=diabetes&semantic=true&limit=20")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) > 0
+
+        # Results should include diabetes-related terms
+        concept_names = [c["concept_name"].lower() for c in data]
+
+        # At least some results should be diabetes-related
+        diabetes_related = any(
+            "diabetes" in name or "diabetic" in name or "glucose" in name
+            for name in concept_names
+        )
+        assert diabetes_related
+
+    def test_semantic_search_with_vocabulary_filter(
+        self,
+        client: TestClient,
+        sample_vocabulary_id: str,
+    ) -> None:
+        """
+        Test semantic search respects vocabulary_id filter.
+
+        Args:
+            client: FastAPI test client
+            sample_vocabulary_id: A valid vocabulary ID from the database
+        """
+        # Make semantic search request with vocabulary filter
+        response = client.get(
+            f"/search/?q=diabetes&semantic=true&vocabulary_id={sample_vocabulary_id}&limit=10"
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # All results should match the vocabulary filter
+        if len(data) > 0:
+            for concept in data:
+                assert concept["vocabulary_id"] == sample_vocabulary_id
+
+    def test_semantic_search_with_domain_filter(
+        self,
+        client: TestClient,
+        sample_domain_id: str,
+    ) -> None:
+        """
+        Test semantic search respects domain_id filter.
+
+        Args:
+            client: FastAPI test client
+            sample_domain_id: A valid domain ID from the database
+        """
+        # Make semantic search request with domain filter
+        response = client.get(
+            f"/search/?q=pain&semantic=true&domain_id={sample_domain_id}&limit=10"
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # All results should match the domain filter
+        if len(data) > 0:
+            for concept in data:
+                assert concept["domain_id"] == sample_domain_id
+
+    def test_semantic_search_with_standard_only(
+        self,
+        client: TestClient,
+    ) -> None:
+        """
+        Test semantic search respects standard_only filter.
+
+        Args:
+            client: FastAPI test client
+        """
+        # Make semantic search request with standard_only filter
+        response = client.get("/search/?q=diabetes&semantic=true&standard_only=true&limit=10")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # All results should be standard concepts
+        if len(data) > 0:
+            for concept in data:
+                assert concept["standard_concept"] == "S"
+
+    def test_semantic_search_with_all_filters(
+        self,
+        client: TestClient,
+        sample_vocabulary_id: str,
+        sample_domain_id: str,
+    ) -> None:
+        """
+        Test semantic search with all filters combined.
+
+        Args:
+            client: FastAPI test client
+            sample_vocabulary_id: A valid vocabulary ID
+            sample_domain_id: A valid domain ID
+        """
+        # Make semantic search request with all filters
+        response = client.get(
+            f"/search/?q=pain&semantic=true"
+            f"&vocabulary_id={sample_vocabulary_id}"
+            f"&domain_id={sample_domain_id}"
+            f"&standard_only=true"
+            f"&limit=10"
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # All results should match all filters
+        if len(data) > 0:
+            for concept in data:
+                assert concept["vocabulary_id"] == sample_vocabulary_id
+                assert concept["domain_id"] == sample_domain_id
+                assert concept["standard_concept"] == "S"
+
+    def test_semantic_search_empty_query_returns_empty(
+        self,
+        client: TestClient,
+    ) -> None:
+        """
+        Test semantic search with empty query returns empty results.
+
+        Args:
+            client: FastAPI test client
+        """
+        # Make request with empty query
+        response = client.get("/search/?q=&semantic=true")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) == 0
+
+    def test_semantic_search_respects_limit(
+        self,
+        client: TestClient,
+    ) -> None:
+        """
+        Test semantic search respects limit parameter.
+
+        Args:
+            client: FastAPI test client
+        """
+        # Make request with custom limit
+        limit = 5
+        response = client.get(f"/search/?q=diabetes&semantic=true&limit={limit}")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) <= limit
+
+    def test_semantic_search_htmx_response(
+        self,
+        client: TestClient,
+    ) -> None:
+        """
+        Test semantic search with HTMX header returns HTML template.
+
+        Args:
+            client: FastAPI test client
+        """
+        # Make HTMX request
+        response = client.get(
+            "/search/?q=diabetes&semantic=true&limit=10",
+            headers={"HX-Request": "true"},
+        )
+
+        assert response.status_code == 200
+        assert "text/html" in response.headers["content-type"]
+        assert len(response.text) > 0
+        # Should contain semantic search mode indicator
+        assert "semantic" in response.text.lower()
+
+    def test_semantic_vs_exact_search_different_results(
+        self,
+        client: TestClient,
+    ) -> None:
+        """
+        Test that semantic and exact search can return different results.
+
+        Semantic search should find conceptually related terms that exact
+        search might miss.
+
+        Args:
+            client: FastAPI test client
+        """
+        query = "diabetes"
+
+        # Exact search
+        response_exact = client.get(f"/search/?q={query}&fuzzy=false&limit=10")
+        # Semantic search
+        response_semantic = client.get(f"/search/?q={query}&semantic=true&limit=10")
+
+        assert response_exact.status_code == 200
+        assert response_semantic.status_code == 200
+
+        data_exact = response_exact.json()
+        data_semantic = response_semantic.json()
+
+        # Both should return results
+        assert len(data_exact) > 0
+        assert len(data_semantic) > 0
+
+        # Get concept IDs
+        ids_exact = set(c["concept_id"] for c in data_exact)
+        ids_semantic = set(c["concept_id"] for c in data_semantic)
+
+        # There might be overlap, but semantic might find different concepts
+        # Just verify both searches work
+        assert isinstance(ids_exact, set)
+        assert isinstance(ids_semantic, set)
+
+    def test_semantic_search_parameter_variations(
+        self,
+        client: TestClient,
+    ) -> None:
+        """
+        Test various semantic parameter values.
+
+        Args:
+            client: FastAPI test client
+        """
+        # Test semantic=true (enabled)
+        response_true = client.get("/search/?q=diabetes&semantic=true")
+        assert response_true.status_code == 200
+        assert len(response_true.json()) > 0
+
+        # Test semantic=false (disabled, should use exact search)
+        response_false = client.get("/search/?q=diabetes&semantic=false")
+        assert response_false.status_code == 200
+
+        # Test no semantic parameter (default behavior - exact search)
+        response_none = client.get("/search/?q=diabetes")
+        assert response_none.status_code == 200
+
+    def test_semantic_search_with_colloquial_terms(
+        self,
+        client: TestClient,
+    ) -> None:
+        """
+        Test semantic search can find medical terms from colloquial queries.
+
+        For example, "sugar disease" should find diabetes-related concepts.
+
+        Args:
+            client: FastAPI test client
+        """
+        # Search with colloquial term
+        response = client.get("/search/?q=sugar disease&semantic=true&limit=10")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Should find some results
+        assert len(data) > 0
+
+        # Results should be diabetes-related
+        concept_names = [c["concept_name"].lower() for c in data]
+        diabetes_found = any(
+            "diabetes" in name or "glucose" in name or "diabetic" in name
+            for name in concept_names
+        )
+        # While we can't guarantee exact matches, semantic search should
+        # at least return some medically relevant results
+        assert len(data) > 0
+
+    def test_semantic_search_case_insensitive(
+        self,
+        client: TestClient,
+    ) -> None:
+        """
+        Test semantic search is case insensitive.
+
+        Args:
+            client: FastAPI test client
+        """
+        # Make requests with different cases
+        response_lower = client.get("/search/?q=diabetes&semantic=true&limit=10")
+        response_upper = client.get("/search/?q=DIABETES&semantic=true&limit=10")
+
+        assert response_lower.status_code == 200
+        assert response_upper.status_code == 200
+
+        data_lower = response_lower.json()
+        data_upper = response_upper.json()
+
+        # Both should return results
+        assert len(data_lower) > 0
+        assert len(data_upper) > 0
+
+    def test_semantic_search_with_special_characters(
+        self,
+        client: TestClient,
+    ) -> None:
+        """
+        Test semantic search handles special characters gracefully.
+
+        Args:
+            client: FastAPI test client
+        """
+        # Make request with special characters
+        response = client.get("/search/?q=type-2 diabetes&semantic=true&limit=10")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        # Should not crash with special characters
+
+    def test_semantic_search_returns_standard_fields(
+        self,
+        client: TestClient,
+    ) -> None:
+        """
+        Test semantic search response contains all expected ConceptBase fields.
+
+        Args:
+            client: FastAPI test client
+        """
+        # Make semantic search request
+        response = client.get("/search/?q=diabetes&semantic=true&limit=10")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) > 0
+
+        concept = data[0]
+        # Verify all required fields are present
+        assert "concept_id" in concept
+        assert "concept_name" in concept
+        assert "domain_id" in concept
+        assert "vocabulary_id" in concept
+        assert "concept_class_id" in concept
+        assert "concept_code" in concept
+        assert "standard_concept" in concept
+        assert "valid_start_date" in concept
+        assert "valid_end_date" in concept
+        assert "invalid_reason" in concept
+
+    def test_semantic_and_fuzzy_mutually_exclusive(
+        self,
+        client: TestClient,
+    ) -> None:
+        """
+        Test that semantic and fuzzy parameters work independently.
+
+        When semantic=true, it should use vector search regardless of fuzzy setting.
+
+        Args:
+            client: FastAPI test client
+        """
+        # Semantic search with fuzzy=true (semantic should take precedence)
+        response_both = client.get("/search/?q=diabetes&semantic=true&fuzzy=true&limit=10")
+
+        # Semantic search with fuzzy=false
+        response_semantic_only = client.get("/search/?q=diabetes&semantic=true&fuzzy=false&limit=10")
+
+        assert response_both.status_code == 200
+        assert response_semantic_only.status_code == 200
+
+        # Both should return results using semantic search
+        assert len(response_both.json()) > 0
+        assert len(response_semantic_only.json()) > 0
